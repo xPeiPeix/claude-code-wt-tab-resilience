@@ -1,0 +1,34 @@
+// Windows Terminal settings.json — 三处插入示例
+//
+// 路径：%LOCALAPPDATA%\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json
+// 不要直接覆盖整个文件，只把下面三处合并到自己的现有配置。
+//
+// 改完保存后 WT 会自动 reload；firstWindowPreference 在下次启动 WT 时生效。
+{
+  // ==================================================================
+  // 1) 顶层新增 — 关 WT 时自动保存所有窗口/tab/分屏布局，下次启动自动还原
+  // ==================================================================
+  "firstWindowPreference": "persistedWindowLayout",
+
+  // ==================================================================
+  // 2) keybindings 数组追加 — Ctrl+Shift+Z 撤销关闭 tab/pane
+  //    栈深 100 个，可连按多次撤销，完整保留分屏方向、比例、profile、CWD
+  //    （不恢复跑着的进程，需要重启对应命令）
+  // ==================================================================
+  "keybindings": [
+    {
+      "id": "Terminal.RestoreLastClosed",
+      "keys": "ctrl+shift+z"
+    }
+  ],
+
+  // ==================================================================
+  // 3) profiles.defaults 合并 — 响铃时窗口闪 + taskbar 图标闪（无音频）
+  //    失焦 tab 自动加铃铛 glyph，配合 Stop hook 实现"哪个 tab 完成了"的视觉信号
+  // ==================================================================
+  "profiles": {
+    "defaults": {
+      "bellStyle": ["window", "taskbar"]
+    }
+  }
+}

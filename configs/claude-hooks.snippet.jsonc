@@ -1,0 +1,38 @@
+// Claude Code ~/.claude/settings.json — hooks 块新增示例
+//
+// 把下面 Stop 和 Notification 两个键合并到自己现有的 hooks 块。
+// 保留已有的 PreToolUse / PostToolUse / SubagentStop 等其他 hook。
+//
+// 关键技术点：
+//   - 命令必须写到 /dev/tty 才能让 WT 看到 BEL 和 OSC 9 字节
+//     （Claude Code 把 hook 的 stdout/stderr 捕获到 debug log，不送终端）
+//   - || true 兜底：claude -p 非交互模式没 tty，命令静默失败而非阻塞
+//   - Notification matcher 是字符串 "idle_prompt"，只在 Claude 真正等待输入时触发
+//     （不在 permission_prompt / auth_success / elicitation_* 等其他通知上误触发）
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "printf '\\a' > /dev/tty 2>/dev/null || true",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "matcher": "idle_prompt",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "p=$(basename \"${CLAUDE_PROJECT_DIR:-$PWD}\"); printf '\\033]9;Claude [%s] 等你输入\\007' \"$p\" > /dev/tty 2>/dev/null || true",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}
