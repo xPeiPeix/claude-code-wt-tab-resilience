@@ -1,35 +1,77 @@
-// Claude Code ~/.claude/settings.json — hooks 块新增示例
+// Claude Code ~/.claude/settings.json — Notification hook 新增示例
 //
-// 把下面 Stop 和 Notification 两个键合并到自己现有的 hooks 块。
+// 把下面的 Notification 键合并到自己现有的 hooks 块。
 // 保留已有的 PreToolUse / PostToolUse / SubagentStop 等其他 hook。
 //
-// 关键技术点：
-//   - 命令必须写到 /dev/tty 才能让 WT 看到 BEL 和 OSC 9 字节
-//     （Claude Code 把 hook 的 stdout/stderr 捕获到 debug log，不送终端）
-//   - || true 兜底：claude -p 非交互模式没 tty，命令静默失败而非阻塞
-//   - Notification matcher 是字符串 "idle_prompt"，只在 Claude 真正等待输入时触发
-//     （不在 permission_prompt / auth_success / elicitation_* 等其他通知上误触发）
+// ============================================================
+// 前置条件：安装 BurntToast PowerShell 模块（一次性）
+// ============================================================
+//   pwsh -NoProfile -Command "Install-Module BurntToast -Scope CurrentUser -Force"
+//
+// ============================================================
+// 关键技术点
+// ============================================================
+//   - 三个 matcher 覆盖三种关键场景，文案不同便于一眼区分：
+//       1. idle_prompt        → "Claude Code" + "Claude [项目名] 等你输入"
+//       2. permission_prompt  → "Claude Code · 等待授权" + "Claude [项目名] 需要批准命令"
+//       3. elicitation_dialog → "Claude Code · 询问中" + "Claude [项目名] 等你决策"
+//
+//   - 不匹配的事件（auth_success / elicitation_complete / elicitation_response）
+//     不会触发，避免次要事件污染通知
+//
+//   - shell: "powershell" 让 command 直接在 PowerShell 中执行
+//     避免 bash 嵌入 PowerShell 的引号转义噩梦
+//
+//   - PowerShell 调用 BurntToast 的 New-BurntToastNotification 弹原生 Win11 toast
+//     不依赖 stdout/stderr 路由，因为 Claude Code 把 hook 输出全捕获到 debug log
+//
+// ============================================================
+// 为什么不用 Stop hook
+// ============================================================
+//   - Stop 每轮 LLM 响应都触发（含中间工具调用结束），频率太高
+//   - 响铃路径不通：Claude Code 把 hook stdout 捕获到 debug log，
+//     hook 子进程也无 controlling tty，无法发 BEL 字符触发 WT bellStyle
+//   - Notification 三个 matcher 已覆盖所有"主人需要看一眼"的场景
+//
+// ============================================================
+// 为什么不用 NotifyIcon balloon（无依赖方案）
+// ============================================================
+//   - 是 Windows 7 风格的旧式气泡通知，样式过时
+//   - BurntToast 给现代 Win11 toast，体验显著更好
+//   - 一次性 Install-Module 即可，依赖代价可接受
 {
   "hooks": {
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "printf '\\a' > /dev/tty 2>/dev/null || true",
-            "timeout": 5
-          }
-        ]
-      }
-    ],
     "Notification": [
       {
         "matcher": "idle_prompt",
         "hooks": [
           {
             "type": "command",
-            "command": "p=$(basename \"${CLAUDE_PROJECT_DIR:-$PWD}\"); printf '\\033]9;Claude [%s] 等你输入\\007' \"$p\" > /dev/tty 2>/dev/null || true",
-            "timeout": 5
+            "shell": "powershell",
+            "command": "$d = if ($env:CLAUDE_PROJECT_DIR) {$env:CLAUDE_PROJECT_DIR} else {$PWD}; $p = Split-Path -Leaf $d; New-BurntToastNotification -Text 'Claude Code', \"Claude [$p] 等你输入\"",
+            "timeout": 8
+          }
+        ]
+      },
+      {
+        "matcher": "permission_prompt",
+        "hooks": [
+          {
+            "type": "command",
+            "shell": "powershell",
+            "command": "$d = if ($env:CLAUDE_PROJECT_DIR) {$env:CLAUDE_PROJECT_DIR} else {$PWD}; $p = Split-Path -Leaf $d; New-BurntToastNotification -Text 'Claude Code · 等待授权', \"Claude [$p] 需要批准命令\"",
+            "timeout": 8
+          }
+        ]
+      },
+      {
+        "matcher": "elicitation_dialog",
+        "hooks": [
+          {
+            "type": "command",
+            "shell": "powershell",
+            "command": "$d = if ($env:CLAUDE_PROJECT_DIR) {$env:CLAUDE_PROJECT_DIR} else {$PWD}; $p = Split-Path -Leaf $d; New-BurntToastNotification -Text 'Claude Code · 询问中', \"Claude [$p] 等你决策\"",
+            "timeout": 8
           }
         ]
       }
