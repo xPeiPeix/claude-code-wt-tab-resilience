@@ -1,6 +1,14 @@
 # Claude Code on Windows Terminal — Tab Resilience Toolkit
 
-> 让 Windows Terminal + Claude Code 的多 tab 工作流不再脆弱
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Platform: Windows](https://img.shields.io/badge/Platform-Windows-blue.svg)](#)
+[![Claude Code](https://img.shields.io/badge/Claude%20Code-v2.x-orange.svg)](https://docs.anthropic.com/claude/docs/claude-code)
+[![Windows Terminal](https://img.shields.io/badge/Windows%20Terminal-v1.21+-blue.svg)](https://github.com/microsoft/terminal)
+[![Zero Dependencies](https://img.shields.io/badge/dependencies-zero-brightgreen.svg)](#)
+
+> **零依赖、纯 settings.json 配置** — 让 Windows Terminal × Claude Code 多 tab 工作流不再脆弱
+>
+> 五分钟搞定：tab 误关一键复活、整个 WT 关了自动恢复布局、后台 tab 完成时自动响铃 + 弹 Toast 主动提醒
 
 在 Windows Terminal 里跑多个并发 Claude Code session 是常见工作流，但有两个反复折磨人的痛点。本仓库给出一套零依赖、纯 settings.json 配置的解法。
 
